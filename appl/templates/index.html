@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block head %}
+{% if sndmap %}
+    {{sndmap.js}}
+{% endif %}
+{% endblock %}
+
+{% block body %}
+
+<h2>NCC Foreclosure Viewer</h2>
+
+<form action="{{ url_for('process_pdf') }}" method="POST">
+    <input type="text" name="url" id="url" placeholder="Enter PDF url here...">
+    <input type="submit" value="Process PDF">
+</form>
+
+<br>
+
+
+<div class="google-map">
+    {% if sndmap %}
+        {{ sndmap.html }}
+    {% endif %}
+</div>
+
+
+<h3>List of Properties</h3>
+{% include "display_foreclosures.html" %}
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% if foreclosures|length < 1 %}
+<h4 style="text-align: center">No data found. Please choose input file for processing!</h4>
+{% else %}
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Attorney</th>
+        <th>Plantiff</th>
+        <th>SheriffID</th>
+        <th>Defendant</th>
+        <th>Address</th>
+        <th>Parcel</th>
+        <th>Status</th>
+        <th>Principal</th>
+    </tr>
+    {% for foreclosure in foreclosures %}
+    <tr>
+        <td>{{ foreclosure.type }}</td>
+        <td>{{ foreclosure.attorney }}</td>
+        <td>{{ foreclosure.plantiff }}</td>
+        <td>{{ foreclosure.sheriffId }}</td>
+        <td>{{ foreclosure.defendant }}</td>
+        <td>{{ foreclosure.address }}</td>
+        <td>{{ foreclosure.parcel }}</td>
+        <td>{{ foreclosure.status }}</td>
+        <td>{{ foreclosure.principal }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
