@@ -1,17 +1,21 @@
-from os import linesep
-
 import googlemaps
 from flask import Flask, request, render_template, redirect
 from flask_googlemaps import GoogleMaps, Map
-
-from .models import process_data
+from flask_sqlalchemy import SQLAlchemy
 
 application = app = Flask(__name__)
 # you can also pass the key here if you prefer
 # GoogleMaps(application, key="AIzaSyC8MW5oXjMx2Ww8HMymFwcNhilKmcbedlw")
 # gmaps = googlemaps.Client(key="AIzaSyC8MW5oXjMx2Ww8HMymFwcNhilKmcbedlw")
 GoogleMaps(application, key="AIzaSyAB_iD63VLnlliq6Q877RzcQH7RctN597c")
-gmaps = googlemaps.Client(key="AIzaSyAB_iD63VLnlliq6Q877RzcQH7RctN597c")
+map_client = googlemaps.Client(key="AIzaSyAB_iD63VLnlliq6Q877RzcQH7RctN597c")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+from .models import process_data, PropertyRecord, Parcel
+db.create_all()
 
 
 @app.route('/')
@@ -28,9 +32,10 @@ def process_pdf():
         markers = []
         for foreclosure in foreclosures:
             address = foreclosure.address
-            output = gmaps.geocode(address)
-            foreclosure.lat = output[0]['geometry']['location'].get('lat')
-            foreclosure.lng = output[0]['geometry']['location'].get('lng')
+            foreclosure = get_lat_long(foreclosure)
+            # output = gmaps.geocode(address)
+            # foreclosure.lat = output[0]['geometry']['location'].get('lat')
+            # foreclosure.lng = output[0]['geometry']['location'].get('lng')
             marker = {}
             if foreclosure.status != 'Scheduled':
                 marker['icon'] = 'http://maps.google.com/mapfiles/ms/icons/orange-dot.png'
@@ -45,7 +50,6 @@ def process_pdf():
             marker['infobox'] = "<div><h4>"+address+"</h4>" \
                                 "<div><ul style=\"list-style: none; padding-left: 0;\">" \
                                 "   <li>Type : <b>"+foreclosure.type+"</b></li>" \
-                                "   <li>Price : <b>"+foreclosure.principal+"</b></li>" \
                                 "   <li>Status : <b>"+foreclosure.status+"</b></li>" \
                                 "  </ul></div>" \
                                 "</div> "
@@ -63,3 +67,24 @@ def process_pdf():
 
     else:
         return redirect('/')
+
+
+def get_lat_long(p: PropertyRecord):
+    parcel_id = p.parcel
+    # parcel = db.session.query(Parcel).filter_by(parcel_id=parcel_id).scalar()
+    parcel = Parcel.query.filter_by(parcel_id=p.parcel).first()
+    if parcel is None:
+        address = p.address
+        output = map_client.geocode(address)
+        lat = output[0]['geometry']['location'].get('lat')
+        lng = output[0]['geometry']['location'].get('lng')
+        parcel = Parcel(parcel_id=parcel_id, address=address, latitude=lat, longitude=lng)
+        try:
+            db.session.add(parcel)
+            db.session.commit()
+        except:
+            return 'There was an issue adding your task'
+
+    p.lat = parcel.latitude
+    p.lng = parcel.longitude
+    return p
